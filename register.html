@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Campus Issue Tracker</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="auth-container py-5">
+        <div class="auth-card fade-in" style="max-width: 550px;">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-plus-fill" style="font-size: 3rem; color: var(--primary-color);"></i>
+                <h2 class="mt-2 fw-bold">Create Account</h2>
+                <p class="text-muted">Join the Campus Issue Tracker</p>
+            </div>
+
+            <form id="registerForm">
+                <div id="errorMsg" class="alert alert-danger d-none" role="alert"></div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label fw-semibold">Full Name</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label fw-semibold">Email Address</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-semibold">Password</label>
+                    <input type="password" class="form-control" id="password" required>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="role" class="form-label fw-semibold">Role</label>
+                        <select class="form-select" id="role" required>
+                            <option value="" disabled selected>Select Role...</option>
+                            <option value="Student">Student</option>
+                            <option value="Faculty">Faculty</option>
+                            <option value="DeptAdmin">Department Admin</option>
+                            <option value="SubDeptAdmin">Sub-Department Admin</option>
+                        </select>
+                    </div>
+                    <!-- Department only visible/required for certain roles in a real app, but we'll show it for all for simplicity -->
+                    <div class="col-md-6">
+                        <label for="department_id" class="form-label fw-semibold">Department <span class="text-muted" style="font-weight:normal; font-size: 0.8em;">(Optional for Students)</span></label>
+                        <select class="form-select" id="department_id">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-custom w-100 py-2 mb-3 mt-2 shadow-sm rounded-3 d-flex justify-content-center align-items-center gap-2">
+                    <span id="regBtnText">Register Account</span>
+                    <div id="regSpinner" class="spinner-border spinner-border-sm d-none" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <p class="mb-0 text-muted">Already have an account? <a href="login.html" class="text-decoration-none fw-semibold" style="color: var(--primary-color);">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check auth
+            if (localStorage.getItem('access_token')) {
+                window.location.href = 'index.html';
+            }
+
+            // Load departments
+            try {
+                const depts = await api.getDepartments();
+                const select = document.getElementById('department_id');
+                depts.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.name;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to load departments', err);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const department_id = document.getElementById('department_id').value;
+            
+            const errorMsg = document.getElementById('errorMsg');
+            const btnText = document.getElementById('regBtnText');
+            const spinner = document.getElementById('regSpinner');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            
+            errorMsg.classList.add('d-none');
+            submitBtn.disabled = true;
+            btnText.textContent = 'Registering...';
+            spinner.classList.remove('d-none');
+            
+            const userData = { name, email, password, role };
+            if (department_id) userData.department_id = parseInt(department_id);
+            
+            try {
+                await api.register(userData);
+                // After successful registration, login automatically or redirect to login
+                const loginData = await api.login(email, password);
+                localStorage.setItem('access_token', loginData.access_token);
+                localStorage.setItem('user', JSON.stringify(loginData.user));
+                
+                if (loginData.user.role === 'DeptAdmin' || loginData.user.role === 'SubDeptAdmin') {
+                    window.location.href = 'admin_dashboard.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.classList.remove('d-none');
+            } finally {
+                submitBtn.disabled = false;
+                btnText.textContent = 'Register Account';
+                spinner.classList.add('d-none');
+            }
+        });
+    </script>
+</body>
+</html>

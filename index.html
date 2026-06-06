@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Issue Tracker - Redirecting...</title>
+    <script src="js/api.js"></script>
+    <script>
+        // Entry point redirect logic
+        document.addEventListener('DOMContentLoaded', () => {
+            if (utils.checkAuth()) {
+                const user = utils.getUser();
+                if (user && (user.role === 'DeptAdmin' || user.role === 'SubDeptAdmin')) {
+                    window.location.href = 'admin_dashboard.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</head>
+<body>
+    <div style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;">
+        <h2>Loading Campus Tracker...</h2>
+    </div>
+</body>
+</html>
